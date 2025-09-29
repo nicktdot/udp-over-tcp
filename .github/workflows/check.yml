@@ -30,8 +30,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential gcc
-        env:
-          CC: gcc
+          # Create cc symlink for Rust build scripts
+          sudo ln -sf /usr/bin/gcc /usr/bin/cc
       - name: Install stable
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -39,8 +39,6 @@ jobs:
           components: rustfmt
       - name: cargo fmt --check
         run: cargo fmt --check
-        env:
-          CC: gcc
   clippy:
     runs-on: ubuntu-latest
     name: ${{ matrix.toolchain }} / clippy
@@ -60,8 +58,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential gcc
-        env:
-          CC: gcc
+          # Create cc symlink for Rust build scripts
+          sudo ln -sf /usr/bin/gcc /usr/bin/cc
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -72,8 +70,7 @@ jobs:
         with:
           reporter: 'github-pr-check'
           github_token: ${{ secrets.GITHUB_TOKEN }}
-        env:
-          CC: gcc
+
   msrv:
     # check that we can build using the minimal rust version that is specified by this crate
     runs-on: ubuntu-latest
@@ -91,13 +88,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential gcc
-        env:
-          CC: gcc
+          # Create cc symlink for Rust build scripts
+          sudo ln -sf /usr/bin/gcc /usr/bin/cc
       - name: Install ${{ matrix.msrv }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
           toolchain: ${{ matrix.msrv }}
       - name: cargo +${{ matrix.msrv }} check
         run: cargo check
-        env:
-          CC: gcc
+

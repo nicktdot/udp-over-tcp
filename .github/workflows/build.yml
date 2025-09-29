@@ -30,8 +30,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential gcc
-        env:
-          CC: gcc
+          # Create cc symlink for Rust build scripts
+          sudo ln -sf /usr/bin/gcc /usr/bin/cc
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -42,8 +42,6 @@ jobs:
         run: cargo generate-lockfile
       - name: cargo build --locked
         run: cargo build --locked --all-features
-        env:
-          CC: gcc
   os-check:
     # run cargo build on mac and windows
     runs-on: ${{ matrix.os }}
@@ -65,10 +63,10 @@ jobs:
         run: |
           # macOS should have Xcode command line tools, but let's ensure they're available
           xcode-select --install || true
+          # Create cc symlink for Rust build scripts (macOS uses clang)
+          sudo ln -sf /usr/bin/clang /usr/bin/cc
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
       - name: cargo build
         run: cargo build --locked --all-features
-        env:
-          CC: gcc
