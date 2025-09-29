@@ -30,8 +30,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential gcc
-          # Ensure cc symlink exists for Rust linker
-          sudo ln -sf /usr/bin/gcc /usr/bin/cc
+        env:
+          CC: gcc
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -42,6 +42,8 @@ jobs:
         run: cargo generate-lockfile
       - name: cargo build --locked
         run: cargo build --locked --all-features
+        env:
+          CC: gcc
   os-check:
     # run cargo build on mac and windows
     runs-on: ${{ matrix.os }}
@@ -68,3 +70,5 @@ jobs:
         run: cargo generate-lockfile
       - name: cargo build
         run: cargo build --locked --all-features
+        env:
+          CC: gcc
