@@ -29,19 +29,17 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential musl-tools
+          sudo apt-get install -y build-essential
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
           toolchain: ${{ matrix.toolchain }}
-      - name: Add musl stddlib
-        run: rustup target add x86_64-unknown-linux-musl
       - name: cargo generate-lockfile
         # enable this ci template to run regardless of whether the lockfile is checked in or not
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
       - name: cargo build --locked
-        run: cargo build --locked --all-features --target x86_64-unknown-linux-musl
+        run: cargo build --locked --all-features
   os-check:
     # run cargo build on mac and windows
     runs-on: ${{ matrix.os }}
