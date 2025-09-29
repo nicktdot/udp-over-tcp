@@ -15,6 +15,11 @@ if "%1"=="debug" (
 REM Set version for release builds
 set VERSION=0.2.0
 
+REM Set environment variables to reduce path embedding and strip debug info
+set RUSTFLAGS=-C strip=symbols -C debuginfo=0
+set CARGO_PROFILE_RELEASE_DEBUG=false
+set CARGO_PROFILE_RELEASE_STRIP=symbols
+
 echo Building udp-over-tcp v%VERSION%
 
 REM Create output directory
@@ -26,8 +31,8 @@ echo Output directory: dist
 REM Build Windows x64
 echo.
 echo Building for Windows x64...
-C:\Users\Nicolas\.cargo\bin\rustup.exe target add x86_64-pc-windows-gnu >nul 2>&1
-C:\Users\Nicolas\.cargo\bin\cargo.exe build --target x86_64-pc-windows-gnu %BUILD_FLAG%
+rustup target add x86_64-pc-windows-gnu >nul 2>&1
+cargo build --target x86_64-pc-windows-gnu %BUILD_FLAG%
 if exist target\x86_64-pc-windows-gnu\%BUILD_TYPE%\udp-over-tcp.exe (
     copy target\x86_64-pc-windows-gnu\%BUILD_TYPE%\udp-over-tcp.exe dist\udp-over-tcp-v%VERSION%-x86_64-windows.exe >nul
     echo [OK] Built: udp-over-tcp-v%VERSION%-x86_64-windows.exe
@@ -38,8 +43,8 @@ if exist target\x86_64-pc-windows-gnu\%BUILD_TYPE%\udp-over-tcp.exe (
 REM Build Linux x64
 echo.
 echo Building for Linux x64...
-C:\Users\Nicolas\.cargo\bin\rustup.exe target add x86_64-unknown-linux-musl >nul 2>&1
-C:\Users\Nicolas\.cargo\bin\cargo.exe build --target x86_64-unknown-linux-musl %BUILD_FLAG%
+rustup target add x86_64-unknown-linux-musl >nul 2>&1
+cargo build --target x86_64-unknown-linux-musl %BUILD_FLAG%
 if exist target\x86_64-unknown-linux-musl\%BUILD_TYPE%\udp-over-tcp (
     copy target\x86_64-unknown-linux-musl\%BUILD_TYPE%\udp-over-tcp dist\udp-over-tcp-v%VERSION%-x86_64-linux >nul
     echo [OK] Built: udp-over-tcp-v%VERSION%-x86_64-linux
@@ -50,8 +55,8 @@ if exist target\x86_64-unknown-linux-musl\%BUILD_TYPE%\udp-over-tcp (
 REM Build Linux ARM64
 echo.
 echo Building for Linux ARM64...
-C:\Users\Nicolas\.cargo\bin\rustup.exe target add aarch64-unknown-linux-musl >nul 2>&1
-C:\Users\Nicolas\.cargo\bin\cargo.exe build --target aarch64-unknown-linux-musl %BUILD_FLAG%
+rustup target add aarch64-unknown-linux-musl >nul 2>&1
+cargo build --target aarch64-unknown-linux-musl %BUILD_FLAG%
 if exist target\aarch64-unknown-linux-musl\%BUILD_TYPE%\udp-over-tcp (
     copy target\aarch64-unknown-linux-musl\%BUILD_TYPE%\udp-over-tcp dist\udp-over-tcp-v%VERSION%-aarch64-linux >nul
     echo [OK] Built: udp-over-tcp-v%VERSION%-aarch64-linux

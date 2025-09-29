@@ -52,10 +52,10 @@ foreach ($target in $targets) {
     Write-Host "`nBuilding for $($target.description)..." -ForegroundColor Yellow
     
     # Add target if not already installed
-    & "C:\Users\Nicolas\.cargo\bin\rustup.exe" target add $($target.target) 2>$null
+    & "rustup" target add $($target.target) 2>$null
 
     # Build for target
-    $buildCmd = "C:\Users\Nicolas\.cargo\bin\cargo.exe build --target $($target.target) $buildFlag"
+    $buildCmd = "cargo build --target $($target.target) $buildFlag"
     Write-Host "Running: $buildCmd" -ForegroundColor Gray
     
     try {
