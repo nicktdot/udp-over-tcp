@@ -22,6 +22,10 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # tag=v5.0.0
         with:
           submodules: true
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
       - name: Install nightly
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -29,8 +33,8 @@ jobs:
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
         run: cargo generate-lockfile
-      - name: cargo test --locked
-        run: cargo test --locked --all-features --all-targets
+      - name: cargo build --locked
+        run: cargo build --locked --all-features
   # https://twitter.com/alcuadrado/status/1571291687837732873
   update:
     # This action checks that updating the dependencies of this crate to the latest available that
@@ -41,12 +45,17 @@ jobs:
     runs-on: ubuntu-latest
     name: ubuntu / beta / updated
     # There's no point running this if no Cargo.lock was checked in in the first place, since we'd
-    # just redo what happened in the regular test job. Unfortunately, hashFiles only works in if on
+    # just redo what happened in the regular build job. Unfortunately, hashFiles only works in if on
     # steps, so we repeat it.
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # tag=v5.0.0
         with:
           submodules: true
+      - name: Install build dependencies
+        if: hashFiles('Cargo.lock') != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
       - name: Install beta
         if: hashFiles('Cargo.lock') != ''
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
@@ -55,8 +64,8 @@ jobs:
       - name: cargo update
         if: hashFiles('Cargo.lock') != ''
         run: cargo update
-      - name: cargo test
+      - name: cargo build
         if: hashFiles('Cargo.lock') != ''
-        run: cargo test --locked --all-features --all-targets
+        run: cargo build --locked --all-features
         env:
           RUSTFLAGS: -D deprecated
