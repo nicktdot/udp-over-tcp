@@ -1,1 +1,37 @@
-/target
+# Rust
+/target/
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Development files
+*.pcap
+*.pcapng
+*.log
+*.txt
+rustup-init.exe
+llvm-mingw-*/
+
+# Test files
+test_*.py
+example_*.sh
+*.md.bak
+
+# Temporary files
+*.tmp
+*.temp

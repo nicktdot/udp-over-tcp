@@ -1,100 +1,150 @@
 # udp-over-tcp
 
-A command-line tool for tunneling UDP datagrams over TCP.
+A command-line tool for tunneling UDP datagrams over TCP with advanced per-flow socket management.
 
-It is particularly useful for [tunneling UDP over SSH][so]
+This enhanced version supports multiple concurrent UDP flows with proper return packet routing, making it ideal for applications that need to handle many clients simultaneously.
 
-The tool was designed primarily for the use-case where you have two
-applications that need to talk to each other over UDP without an obvious
-client-server relationship. That is, either application may initiate a
-packet, and must be configured with the address of the other at
-start-up (i.e., ports cannot be random).
+## Key Features
 
-You run `udp-over-tcp` on both applications' hosts. Each instance acts
-as a kind of local replica on the application running on the other. If
-the application on one host listens on UDP port P, then `udp-over-tcp`
-will listen on UDP port P on the _other_ host, and ensure that traffic
-to the replica P goes to the real application's port P. Crucially,
-`udp-over-tcp` will do this for both applications' ports at the same
-time and bond the ports. It will effectively "pretend" that each
-application is running locally to the other.
+- **Per-Flow Socket Management**: Creates dedicated UDP sockets for each client flow in auto mode
+- **Proper Return Packet Routing**: Ensures return packets reach the correct original client
+- **Multiple Concurrent Clients**: Handles many simultaneous UDP connections efficiently
+- **Flow State Management**: Automatic cleanup and timeout handling for idle connections
+- **Enhanced Logging**: Comprehensive debug and verbose logging options
+- **Connection Stability**: Robust TCP connection handling with automatic reconnection
 
-Concretely, if the application on one host sends a datagram from its
-port P to (local replica) port Q, the datagram will arrive at the real
-(remote) application's port Q *with a source port of P*. This means that
-an application always sees the same single address (localhost)
-and port (the other application's port), and that same address-host pair
-can also be used in the peer configuration for the application.
+## Use Cases
 
-Hopefully the following diagram can aid in understanding the setup
-`udp-over-tcp` configures:
-
-[![Diagram showing the intended network setup of udp-over-tcp when run
-across an SSH tunnel.](diagram.svg)][diag]
+This tool is particularly useful for:
+- [Tunneling UDP over SSH][so]
+- Multi-client UDP applications (game servers, VoIP, etc.)
+- Applications requiring bidirectional UDP communication
+- Scenarios where UDP applications need to communicate through TCP-only networks
+- Load balancing UDP traffic through TCP proxies
 
 ## Installation
 
-The program [comes pre-compiled][rel] for a number of platforms (thanks
-[cargo-dist]!), and should be executable out of the box with no
-dependencies.
+### Pre-built Binaries
 
-Alternatively, you can install it through Cargo with
+Download the latest release for your platform:
+
+- **Windows x64**: [udp-over-tcp-v0.2.0-x86_64-windows.exe](https://github.com/nicktdot/udp-over-tcp/releases/latest)
+- **Linux x64**: [udp-over-tcp-v0.2.0-x86_64-linux](https://github.com/nicktdot/udp-over-tcp/releases/latest)
+- **Linux ARM64**: [udp-over-tcp-v0.2.0-aarch64-linux](https://github.com/nicktdot/udp-over-tcp/releases/latest)
+
+### From Source
+
+You can install the tool through Cargo:
 
 ```console
-$ cargo install udp-over-tcp
+$ cargo install --git https://github.com/nicktdot/udp-over-tcp
+```
+
+Or clone and build from source:
+
+```console
+$ git clone https://github.com/nicktdot/udp-over-tcp
+$ cd udp-over-tcp
+$ cargo build --release
 ```
 
 [so]: https://superuser.com/questions/53103/udp-traffic-through-ssh-tunnel/
-[diag]: https://excalidraw.com/#json=oIUskge-sbnxvosJ5GMiz,9cF_06fOe8FImnZVMQboNQ
-[rel]: https://github.com/jonhoo/udp-over-tcp/releases
-[cargo-dist]: https://opensource.axo.dev/cargo-dist/
 
 ## Usage
 
-You have a UDP application running on host X on port A.
-You want it to talk to a UDP application running on host Y on port B.
-And you also want to allow the application on Y to talk to A on X.
-Great, do as follows:
+### Basic Usage
 
-On either host (here X), first create a TCP tunnel to the other host:
+For simple point-to-point UDP tunneling:
 
-    ssh -L 7878:127.0.0.1:7878 $Y
+```bash
+# Listen side (server host)
+udp-over-tcp --tcp-listen 7878 --udp-bind 9999 --udp-sendto 192.168.1.100:8888
 
-Next, run udp-over-tcp on both hosts, one with `--tcp-listen` and one with `--tcp-connect`.
-The `--tcp-listen` should be used on the host that the forwarding allows connecting _to_ (here Y).
-You can run them in either order, but best practice is to listen first:
+# Connect side (client host)
+udp-over-tcp --tcp-connect server:7878 --udp-bind 8888 --udp-sendto 127.0.0.1:9999
+```
 
-    Y $ udp-over-tcp --tcp-listen  7878 --udp-bind $A --udp-sendto $B
-    X $ udp-over-tcp --tcp-connect 7878 --udp-bind $B --udp-sendto $A
+### Advanced Multi-Client Mode (Recommended)
 
-On Y, this will listen on UDP port $A, forward those over TCP to X, and then deliver them to UDP port $A there.
-On X, this will listen on UDP port $B, forward those over TCP to Y, and then deliver them to UDP port $B there.
+For applications with multiple concurrent clients, use auto mode:
 
-Now configure the application on X to send to 127.0.0.1:$B
-and configure the application on Y to send to 127.0.0.1:$A.
-In other words, same port, local IP address.
+```bash
+# Listen side - creates per-client sockets
+udp-over-tcp --tcp-listen 7878 --udp-bind auto --udp-sendto 192.168.1.100:9999
 
-Each argument takes a port number (as above) or addr:port to specify the address.
-(address defaults to 0.0.0.0 for listen/bind and 127.0.0.1 for connect/sendto)
+# Connect side - dynamic return routing
+udp-over-tcp --tcp-connect server:7878 --udp-bind 127.0.0.1:9999 --udp-sendto 192.168.1.100:auto
+```
 
-## Alternatives
+### Auto Mode Explained
 
-There exist other tools that can help with this problem, though they
-have different properties than this tool.
+- `--udp-bind auto` (Listen side only): Creates a dedicated UDP socket for each client flow, enabling proper return packet routing to the correct client.
 
-Solutions relying on `nc` or `socat` do not preserve UDP datagram
-boundaries, meaning two UDP `sendmsg` can cause only a single (combined)
-message to arrive through `recvfrom`. Many UDP applications are not
-resilient to this as they rely on UDP to provide message framing.
+- `--udp-sendto IP:auto` (Connect side only): Dynamically determines destination port from source packet, routing packets back to original source port.
 
-[mullvad's udp-over-tcp][mullvad] only provides unidrectional
-forwarding. One can run additional instances of the tool to forward in
-the other direction, though doing so means the source port of incoming
-datagrams will not match the destination port of outgoing datagrams.
-However, this is likely fine for client-server style applications where
-the client's port isn't important.
+### Address Formats
 
-[mullvad]: https://github.com/mullvad/udp-over-tcp
+- `PORT` - Port number (uses default IP: 0.0.0.0 for bind, 127.0.0.1 for connect)
+- `IP:PORT` - Explicit IP address and port
+- `auto` - Dynamic per-flow sockets (--udp-bind only, listen side only)
+- `IP:auto` - Dynamic destination port (--udp-sendto only, connect side only)
+
+### Logging Options
+
+```bash
+# Verbose flow logging
+udp-over-tcp --tcp-listen 7878 --udp-bind auto --udp-sendto 192.168.1.100:9999 --verbose
+
+# Debug logging with packet details
+udp-over-tcp --tcp-listen 7878 --udp-bind auto --udp-sendto 192.168.1.100:9999 --debug
+```
+
+### Help
+
+For complete usage information:
+
+```bash
+udp-over-tcp --help
+```
+
+## Architecture
+
+### Flow Management
+
+This enhanced version implements sophisticated flow management:
+
+- **Per-Flow Sockets**: Each client gets a dedicated UDP socket in auto mode
+- **Reverse Mapping**: Maps return packets back to original clients using port-based lookup
+- **Flow Timeouts**: Automatic cleanup of idle flows after 10 minutes
+- **Connection Recovery**: Flow state is cleared and rebuilt on TCP reconnection
+
+### TCP Connection Handling
+
+- **Automatic Reconnection**: Connect side automatically retries failed connections
+- **Flow State Cleanup**: All flow mappings are cleared when TCP connection drops
+- **Connection Stability**: Robust error handling prevents connection bouncing
+
+## Comparison with Alternatives
+
+### vs. Original udp-over-tcp
+
+This version adds:
+- Multi-client support with per-flow socket management
+- Proper return packet routing for concurrent clients
+- Enhanced connection stability and error handling
+- Comprehensive logging and debugging options
+
+### vs. nc/socat Solutions
+
+- **Preserves UDP datagram boundaries** (unlike nc/socat which can merge packets)
+- **Bidirectional forwarding** with proper source port preservation
+- **Multiple concurrent clients** supported natively
+
+### vs. Mullvad's udp-over-tcp
+
+- **Bidirectional forwarding** in a single instance
+- **Source port preservation** for proper client identification
+- **Multi-client support** without port conflicts
 
 ## License
 
