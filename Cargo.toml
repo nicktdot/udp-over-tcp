@@ -14,10 +14,10 @@ build = "build.rs"
 
 [dependencies]
 eyre = "0.6.12"
-tokio = { version = "1.39.2", features = ["rt", "macros", "net", "time", "io-util"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-lexopt = "0.3.0"
+tokio = { version = "1.49.0", features = ["rt", "macros", "net", "time", "io-util"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+lexopt = "0.3.2"
 
 
 
